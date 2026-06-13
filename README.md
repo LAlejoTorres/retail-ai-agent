@@ -1,205 +1,298 @@
-# Tecni — Agente IA para Retail de Electrónica
+# Tecni - Agente IA para Retail de Electrónica
 
-Agente conversacional de atención al cliente para una tienda de electrónica
-(celulares, computadores, televisores y accesorios). Atiende **ventas consultivas,
-seguimiento de pedidos y garantías**, decide dinámicamente cuándo invocar
-herramientas, mantiene memoria de sesión y **escala a un humano** cuando corresponde.
+Tecni es un asistente conversacional para una tienda de electrónica. Atiende
+ventas consultivas, seguimiento de pedidos, compras y garantías; mantiene memoria
+de la sesión y escala a un asesor humano cuando el caso lo necesita.
 
-Funciona 100% local con [Ollama](https://ollama.com) (Qwen3-14B) o contra cualquier
-proveedor OpenAI-compatible: cambiar tres variables de entorno lo apunta a Groq,
-OpenAI, Gemini, etc. El demo se graba con Groq por velocidad.
+La demo está pensada para correr con **Groq + `llama-3.3-70b-versatile`** porque
+responde rápido y fue la configuración más estable para grabar el video. El
+proyecto sigue siendo agnóstico al proveedor: si el endpoint es compatible con la
+API de OpenAI, basta con cambiar las variables `LLM_*`. Dejé una opción local con
+Ollama como fallback reproducible, pero la versión final del demo usa Groq.
 
-## Principio de diseño: columna determinística, piel generativa
+## Idea principal
 
-El criterio de evaluación más importante es **no inventar** precios, fechas, stock ni
-cobertura de garantía. La responsabilidad se divide de forma explícita:
+El punto más importante para este caso no es que el agente "suene inteligente",
+sino que no invente datos del negocio: precios, stock, fechas de entrega, estados
+de pedido, garantías o tickets.
 
-| Lo decide el LLM | Lo decide código determinístico |
+Por eso la solución separa responsabilidades:
+
+| LLM | Código determinístico |
 |---|---|
-| Conversación y tono | Validación de datos del cliente (regex) |
-| Extracción de entidades | Filtrado y ranking de productos |
-| Qué herramienta llamar | Vigencia de garantía (derivada de la fecha real) |
-| Justificar recomendaciones | Generación de tickets y reglas de escalamiento |
+| Conversa con el cliente | Valida datos de cliente |
+| Extrae intención y entidades | Filtra y ranquea productos |
+| Decide qué herramienta usar | Calcula vigencia de garantías |
+| Redacta y justifica respuestas | Crea pedidos, tickets y reglas de escalamiento |
 
-El LLM nunca elige productos de datos crudos ni afirma un hecho que no venga de una
-herramienta. Esto se **verifica automáticamente** con una prueba de *grounding*, y
-una red de seguridad determinística corrige incluso un precio al que el modelo le
-cambió un dígito (`app/agent/price_guard.py`).
-
-### Decisiones de alcance (deliberadas)
-
-- **SQLite** para datos transaccionales (clientes, pedidos, garantías, tickets).
-- **RAG (Chroma)** solo sobre documentos de política no estructurados (garantías,
-  envíos, devoluciones, FAQ). El catálogo (~9 productos) se filtra de forma
-  determinística, no por RAG: más confiable y barato a esa escala.
-- **Sin Docker Compose ni ORM pesado**: innecesarios para el alcance de la prueba.
+En otras palabras: el modelo le da naturalidad a la conversación, pero los hechos
+importantes vienen de herramientas. Además, los evals revisan *grounding*: si el
+agente menciona un precio, ID o ticket, debe poder rastrearse a un resultado de
+herramienta. También hay una red determinística (`app/agent/price_guard.py`) que
+corrige respuestas donde el modelo cambia por error un dígito de un precio o ID
+que sí venía de una herramienta.
 
 ## Arquitectura
 
 ![Arquitectura del agente Tecni](docs/diagram_arch_io.png)
 
-- **Native tool calling como router**: no hay clasificador de intención
-  hardcodeado; el modelo decide responder o invocar herramientas.
-- **Memoria de sesión estructurada** (cliente, presupuesto, productos consultados,
-  último pedido/ticket, preferencias), visible en la UI.
-- **Traza de decisión por turno** (herramientas, grounding, escalamiento, latencia),
-  visible en la UI y usada por los evals.
+La aplicación tiene tres piezas principales:
+
+- **Streamlit**: cliente delgado para la demo. Muestra el chat, la memoria de
+  sesión y la traza de herramientas usadas.
+- **FastAPI**: expone el endpoint de chat, inicializa datos y conecta la UI con
+  el agente.
+- **LangGraph**: orquesta el flujo del agente. El LLM decide si responde directo
+  o llama herramientas; el nodo de herramientas ejecuta código determinístico y
+  actualiza memoria/traza.
+
+La información se guarda así:
+
+- **SQLite** para clientes, pedidos, garantías y tickets.
+- **`products.json`** para el catálogo, porque es estructurado y pequeño.
+- **Chroma + embeddings** para políticas de garantía, envíos, devoluciones y FAQ.
+
+No usé RAG para el catálogo a propósito: con pocos productos estructurados, es más
+confiable filtrar y ordenar en código que pedirle al modelo que recupere productos
+desde texto libre.
+
+## Qué puede hacer
+
+- Recomendar productos reales según necesidad, categoría y presupuesto.
+- Comparar alternativas del catálogo.
+- Consultar estado y fecha estimada de pedidos.
+- Cambiar dirección de entrega cuando el pedido aún lo permite y el cliente es el
+  titular.
+- Registrar clientes nuevos con validación determinística.
+- Crear pedidos y garantías.
+- Crear tickets de garantía y escalar a humano ante fallas eléctricas, seguridad,
+  reclamos legales, fraude o casos fuera de política.
+- Responder preguntas de políticas usando RAG.
+- Rechazar intentos de manipulación, descuentos no autorizados, formatos de salida
+  inseguros y datos sensibles de tarjeta.
 
 ## Puesta en marcha
 
-Requisitos: Python 3.12, [`uv`](https://github.com/astral-sh/uv) y
-[Ollama](https://ollama.com).
+Requisitos:
 
-### 1. Instalar dependencias y modelos
+- Python 3.12
+- [`uv`](https://github.com/astral-sh/uv)
+- Una API key de Groq para la ruta recomendada de demo.
+- Ollama para embeddings locales del RAG (`nomic-embed-text`).
+
+### 1. Instalar dependencias
 
 **macOS / Linux**
+
 ```bash
-make setup            # uv pip install -e ".[dev]"
-ollama serve &        # si no está corriendo
-make models           # descarga qwen3:14b y nomic-embed-text (~9 GB)
+make setup
 ```
 
-**Windows** (sin `make`; Ollama corre como servicio tras instalarlo)
+**Windows**
+
 ```powershell
-winget install Ollama.Ollama
 uv venv -p 3.12
 uv pip install -e ".[dev]"
-ollama pull qwen3:14b
+```
+
+### 2. Preparar Ollama para embeddings
+
+Aunque el chat de la demo usa Groq, el RAG de políticas usa embeddings locales con
+Ollama.
+
+```bash
 ollama pull nomic-embed-text
 ```
 
-> El contexto por defecto de Ollama es pequeño y, al desbordarse, trunca el prompt
-> **desde el inicio** (donde van las reglas del agente). Configura
-> `OLLAMA_CONTEXT_LENGTH=16384` antes de iniciar Ollama. En Windows:
-> `[Environment]::SetEnvironmentVariable('OLLAMA_CONTEXT_LENGTH','16384','User')`
-> y reinicia la app de Ollama.
-
-### 2. Configurar entorno
+Si quieres correr también el chat 100% local, descarga el modelo local:
 
 ```bash
-cp .env.example .env   # apunta a Groq (default del demo); necesitas una API key
+ollama pull qwen3:14b
 ```
 
-> Para correr **100% offline** sin API key, descomenta la sección de Ollama en `.env`
-> (opción B) y comenta la de Groq.
+Para la ruta local conviene aumentar el contexto antes de iniciar Ollama:
 
-### 3. Preparar datos (idempotente; también ocurre al arrancar la API)
+```powershell
+[Environment]::SetEnvironmentVariable('OLLAMA_CONTEXT_LENGTH','16384','User')
+```
+
+Luego reinicia la aplicación de Ollama.
+
+### 3. Configurar variables de entorno
 
 ```bash
-make seed              # crea y puebla SQLite           (python -m app.data.seed)
-make index             # indexa las políticas en Chroma (python -m app.rag)
+cp .env.example .env
 ```
 
-### 4. Ejecutar
+Por defecto, `.env.example` viene preparado para Groq:
+
+```env
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_API_KEY=gsk_your_groq_key_here
+LLM_MODEL=llama-3.3-70b-versatile
+LLM_DISABLE_THINKING=false
+```
+
+Reemplaza `LLM_API_KEY` por tu API key real. Para correr offline, comenta esa
+sección y descomenta la alternativa local de Ollama en el mismo archivo.
+
+### 4. Preparar datos
+
+Estos comandos crean la base SQLite y construyen el índice Chroma. También se
+ejecutan al iniciar la API, pero correrlos antes ayuda a detectar problemas de
+entorno.
 
 ```bash
-make api               # backend en http://localhost:8000  (docs: /docs)
-make ui                # en otra terminal: UI en http://localhost:8501
+make seed
+make index
 ```
 
-> **Windows sin `make`:** ejecuta los comandos entre paréntesis con el venv activo
-> (`.venv\Scripts\activate`); para el punto 4, `uvicorn app.main:app --reload` y
-> `streamlit run ui/streamlit_app.py`.
+En Windows sin `make`:
+
+```powershell
+python -m app.data.seed
+python -m app.rag
+```
+
+### 5. Ejecutar la demo
+
+En una terminal:
+
+```bash
+make api
+```
+
+En otra:
+
+```bash
+make ui
+```
+
+URLs:
+
+- Backend: `http://localhost:8000`
+- Docs de API: `http://localhost:8000/docs`
+- UI Streamlit: `http://localhost:8501`
+
+En Windows sin `make`:
+
+```powershell
+uvicorn app.main:app --reload
+streamlit run ui/streamlit_app.py
+```
 
 ## Pruebas y evaluación
 
 ```bash
 make test   # 71 pruebas unitarias determinísticas, sin LLM
-make eval   # 19 escenarios de comportamiento contra el agente real (con LLM)
+make eval   # 19 escenarios contra el agente real, con LLM
 ```
 
-El eval harness (`evals/`) es la pieza diferenciadora. Por cada escenario verifica:
+Las pruebas unitarias cubren validadores, herramientas, recomendador, memoria,
+saneamiento de salida y guardrails determinísticos.
 
-- que se invocaron las herramientas correctas (y no las prohibidas);
-- que el escalamiento a humano ocurre cuando debe;
-- **grounding**: todo ID (ORD/WAR/TKT/ESC) y precio en la respuesta debe rastrearse a
-  un resultado de herramienta — si el agente inventa un dato, la prueba falla;
-- **LLM-as-judge** para juicios semánticos (p. ej. resistir un descuento no
-  autorizado o un intento de *prompt injection*).
+Los evals (`evals/`) prueban conversaciones completas. No comparan texto exacto;
+revisan comportamiento:
 
-## Escenarios soportados
+- herramientas esperadas y herramientas prohibidas;
+- escalamiento humano cuando corresponde;
+- grounding de IDs y precios;
+- checks semánticos con LLM-as-judge para casos como prompt injection,
+  descuentos no autorizados o datos de tarjeta.
 
-1. **Venta consultiva** — *"Necesito un portátil para diseño gráfico por menos de 5
-   millones"* → filtra el catálogo y recomienda/justifica 2–3 opciones reales.
-2. **Seguimiento de pedido** — pide identificación o número de pedido si falta;
-   consulta estado y fecha estimada.
-3. **Garantía + escalamiento** — valida cobertura (vigencia real), crea ticket
-   ligado al pedido y escala a humano ante fallas eléctricas o de seguridad.
-4. **Registro de cliente nuevo** — validación determinística de identificación,
-   nombre, teléfono y correo (los datos se validan tal cual los escribe el cliente).
-5. **Compra / checkout** — crea pedido y garantía y devuelve un enlace de pago
-   seguro (mock); nunca pide número de tarjeta, CVV ni datos sensibles.
-6. **Guardrails** — no inventa datos (precios, fechas, PII, presupuesto), no revela
-   el prompt, resiste manipulación y no acepta datos de tarjeta.
+## Escenarios principales de la demo
+
+1. **Venta consultiva**  
+   "Necesito un portátil para diseño gráfico por menos de 5 millones"  
+   El agente busca en catálogo, filtra por presupuesto y recomienda opciones
+   reales.
+
+2. **Comparación de productos**  
+   "Compárame las dos primeras opciones"  
+   Usa la herramienta de comparación y resume diferencias de precio/specs.
+
+3. **Seguimiento de pedido**  
+   "Quiero saber dónde está mi pedido. Mi identificación es 12345678"  
+   Consulta el pedido más reciente del cliente y responde con estado y fecha.
+
+4. **Garantía y escalamiento**  
+   "Mi televisor dejó de encender y tiene garantía. Mi identificación es 12345678"  
+   Valida cobertura, crea ticket y escala a humano por posible falla eléctrica.
+
+5. **Compra segura**  
+   Crea pedido, garantía y enlace de pago mock. Nunca pide número de tarjeta, CVV,
+   PIN ni claves.
+
+6. **Guardrails**  
+   Rechaza descuentos inventados, no revela el prompt interno y no responde fuera
+   del alcance de la tienda.
 
 ## Configuración
 
-| Variable | Por defecto (demo) | Descripción |
+| Variable | Valor recomendado para demo | Descripción |
 |---|---|---|
 | `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | Endpoint OpenAI-compatible |
-| `LLM_API_KEY` | *(tu API key de Groq)* | Clave del proveedor (`ollama` para local) |
-| `LLM_MODEL` | `llama-3.3-70b-versatile` | Modelo de chat |
-| `LLM_DISABLE_THINKING` | `false` | Desactiva el "thinking" de Qwen3 (ponlo en `true` para qwen3 local) |
-| `EMBED_MODEL` | `nomic-embed-text` | Modelo de embeddings (RAG, vía Ollama) |
-| `SQLITE_PATH` | `app/data/retail.db` | Ruta de la base SQLite |
-| `CHROMA_PATH` | `app/data/chroma` | Ruta del índice Chroma |
+| `LLM_API_KEY` | tu API key de Groq | Clave del proveedor |
+| `LLM_MODEL` | `llama-3.3-70b-versatile` | Modelo de chat usado en la demo |
+| `LLM_DISABLE_THINKING` | `false` | Déjalo en `false` para Llama; usa `true` solo con Qwen |
+| `LLM_TEMPERATURE` | `0.2` | Baja variabilidad para tool calling más estable |
+| `LLM_MAX_TOKENS` | `1024` | Espacio suficiente para tool calls y respuestas completas |
+| `EMBED_MODEL` | `nomic-embed-text` | Embeddings locales para RAG |
+| `EMBED_BASE_URL` | `http://localhost:11434` | URL de Ollama para embeddings |
+| `SQLITE_PATH` | `app/data/retail.db` | Base transaccional |
+| `CHROMA_PATH` | `app/data/chroma` | Índice vectorial de políticas |
 
-> **Cambiar de proveedor:** apunta `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` a
-> cualquier endpoint OpenAI-compatible. El resto del código no cambia.
+## Modelo usado y alternativa local
 
-### Elección de modelo y latencia
-
-| Configuración | Latencia/turno | Notas |
+| Configuración | Uso recomendado | Latencia aproximada |
 |---|---|---|
-| **Groq `llama-3.3-70b-versatile`** | **~0.5–2 s** | Default del demo: rápido y robusto (19/19 escenarios) |
-| Local `qwen3:14b` | ~90 s en CPU / ~15 s con GPU dedicada | Offline y gratis; *fallback* reproducible |
-| Local `qwen3:8b` | ~15–28 s (GPU) | Tool-calling multi-paso más débil |
+| Groq `llama-3.3-70b-versatile` | Demo y evaluación principal | ~0.5-2 s por turno |
+| Ollama `qwen3:14b` | Fallback offline/reproducible | ~90 s por turno en mi equipo |
 
-> En el equipo de desarrollo (GPU AMD de 8 GB, no soportada por Ollama) `qwen3:14b`
-> corre 65% GPU / 35% CPU (~90 s/turno), por eso el demo se graba contra Groq. Para
-> correr `make eval` 100% offline, usa la configuración de Ollama en `.env`.
+La versión final del demo usa Groq + Llama. La opción local queda documentada para
+mostrar que la arquitectura no depende de un proveedor único.
 
-## Estructura
+## Estructura del proyecto
 
-```
+```text
 app/
-├── config.py            # configuración tipada (pydantic-settings)
-├── main.py              # FastAPI (seed + índice al arrancar)
+├── config.py            # configuración tipada
+├── main.py              # FastAPI; prepara DB e índice al arrancar
 ├── api/                 # rutas y schemas HTTP
 ├── agent/
-│   ├── graph.py         # grafo LangGraph (nodos agent + tools)
-│   ├── service.py       # orquesta un turno → respuesta + memoria + traza
-│   ├── llm.py           # factory del modelo (agnóstico al proveedor)
-│   ├── prompts.py       # rol / reglas de negocio / guardrails
-│   ├── toolset.py       # schemas + dispatch de herramientas
-│   ├── memory.py        # memoria de sesión estructurada
-│   ├── price_guard.py   # red determinística que corrige precios mal citados
-│   └── trace.py         # traza de decisión por turno
+│   ├── graph.py         # LangGraph: nodo agent + nodo tools
+│   ├── service.py       # ejecuta un turno y arma respuesta/memoria/traza
+│   ├── llm.py           # único punto provider-aware
+│   ├── prompts.py       # rol, reglas de negocio y guardrails
+│   ├── toolset.py       # schemas y dispatch de herramientas
+│   ├── memory.py        # memoria estructurada de sesión
+│   ├── price_guard.py   # corrige precios/IDs mal citados
+│   └── trace.py         # traza de decisiones por turno
 ├── tools/               # customer / catalog / order / warranty / policy / escalation
-├── domain/              # validators.py + recommender.py (lógica determinística)
-├── rag.py               # indexación y búsqueda de políticas (Chroma)
+├── domain/              # validadores y recomendador determinístico
+├── rag.py               # indexación y búsqueda de políticas
 └── data/                # schema.sql, seed.py, products.json, policies/*.md
-ui/streamlit_app.py      # UI de demo (cliente delgado + panel de memoria y traza)
-evals/                   # grounding.py, judge.py, scenarios.py, run.py
-tests/                   # pruebas unitarias determinísticas
+ui/streamlit_app.py      # UI de demo
+evals/                   # escenarios, grounding y juez semántico
+tests/                   # pruebas unitarias
 ```
 
-## Limitaciones conocidas (decisiones de alcance)
+## Limitaciones conocidas
 
-- **Sin autenticación de identidad:** conocer una identificación basta para consultar
-  los pedidos y garantías de ese cliente. Se mitigó lo más sensible (cambiar la
-  dirección de entrega exige que la identificación coincida con el titular); en
-  producción todo acceso a datos personales requeriría autenticación real.
-- **Estado en memoria de proceso:** la memoria de sesión y el historial viven en el
-  proceso de la API; un reinicio los borra. En producción irían a Redis/Postgres.
-- **Un solo proceso:** sin rate limiting ni multi-worker.
-- **La API re-siembra SQLite al arrancar** para un demo reproducible; en producción
-  iría detrás de una bandera y nunca tocaría datos reales.
-- **Embeddings de RAG vía Ollama local** aunque el chat corra en Groq: Ollama debe
-  estar arriba para (re)construir el índice Chroma.
+Estas son decisiones de alcance para mantener la prueba limpia y entregable:
 
-## Extensiones naturales (fuera del alcance de la prueba)
+- No hay autenticación real. Para el mock, conocer una identificación basta para
+  consultar pedidos/garantías. Cambiar dirección sí verifica titularidad.
+- La memoria vive en el proceso de la API. En producción iría a Redis o Postgres.
+- La app está pensada para un solo proceso de demo; no incluye rate limiting ni
+  multi-worker.
+- La API re-siembra SQLite al arrancar para que la demo sea reproducible. En
+  producción eso estaría detrás de una bandera y nunca tocaría datos reales.
+- El RAG usa embeddings locales vía Ollama, incluso cuando el chat corre con Groq.
 
-- `MemorySaver` → checkpointer en Redis/Postgres para memoria persistente.
-- `interrupt()` de LangGraph para *human-in-the-loop* real al escalar.
-- Streaming de tokens a la UI, autenticación y observabilidad (OpenTelemetry).
+## Posibles siguientes pasos
+
+- Persistir memoria y checkpointer en Redis/Postgres.
+- Usar `interrupt()` de LangGraph para un handoff humano real.
+- Agregar autenticación, rate limiting y observabilidad.
+- Activar streaming de tokens en la UI.
