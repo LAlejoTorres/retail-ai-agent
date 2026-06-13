@@ -8,8 +8,10 @@ from app.agent.trace import TurnTrace
 
 
 class ChatRequest(BaseModel):
-    session_id: str = Field(..., examples=["demo-1"])
-    message: str = Field(..., examples=["Quiero saber dónde está mi pedido"])
+    # Límites defensivos: un mensaje gigante desbordaría la ventana de contexto.
+    session_id: str = Field(..., min_length=1, max_length=64, examples=["demo-1"])
+    message: str = Field(..., min_length=1, max_length=2000,
+                         examples=["Quiero saber dónde está mi pedido"])
 
 
 class ChatResponse(BaseModel):

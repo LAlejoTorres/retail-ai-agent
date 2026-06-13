@@ -125,6 +125,51 @@
     "stock": 15
   },
   {
+    "product_id": "phone_002",
+    "nombre": "Xiaomi Redmi Note 13 Pro",
+    "categoria": "celular",
+    "precio_cop": 1099000,
+    "marca": "Xiaomi",
+    "specs": {
+      "ram_gb": 8,
+      "almacenamiento": "256GB",
+      "pantalla": "6.67\" AMOLED 120Hz",
+      "camara": "200MP con OIS"
+    },
+    "use_cases": ["fotografía", "uso diario", "gaming"],
+    "stock": 18
+  },
+  {
+    "product_id": "phone_003",
+    "nombre": "Motorola Edge 50 Fusion",
+    "categoria": "celular",
+    "precio_cop": 1499000,
+    "marca": "Motorola",
+    "specs": {
+      "ram_gb": 8,
+      "almacenamiento": "256GB",
+      "pantalla": "6.7\" pOLED 144Hz",
+      "camara": "50MP con OIS"
+    },
+    "use_cases": ["uso diario", "fotografía"],
+    "stock": 10
+  },
+  {
+    "product_id": "phone_004",
+    "nombre": "Samsung Galaxy S24",
+    "categoria": "celular",
+    "precio_cop": 3799000,
+    "marca": "Samsung",
+    "specs": {
+      "ram_gb": 8,
+      "almacenamiento": "256GB",
+      "pantalla": "6.2\" Dynamic AMOLED 2X 120Hz",
+      "camara": "50MP triple cámara"
+    },
+    "use_cases": ["fotografía", "gaming", "uso diario"],
+    "stock": 5
+  },
+  {
     "product_id": "acc_001",
     "nombre": "Mouse Logitech MX Master 3S",
     "categoria": "accesorio",

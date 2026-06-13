@@ -1,19 +1,20 @@
-"""FastAPI entrypoint.
-
-On startup it ensures the SQLite store is seeded and the policy index is built,
-so a fresh clone runs with a single command.
-
-Run:  uvicorn app.main:app --reload
-"""
+"""FastAPI entrypoint. On startup it seeds SQLite and builds the policy index."""
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from app.api.routes import router
+from app.config import get_settings
 from app.data.seed import seed
 from app.rag import build_index
+
+logging.basicConfig(
+    level=get_settings().log_level.upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 
 @asynccontextmanager

@@ -1,12 +1,10 @@
-"""Single source of truth for the agent's tools.
-
-Each tool function is exposed two ways from the same definition (no schema drift):
-  - as a LangChain StructuredTool, so the model receives the JSON schema; and
-  - in DISPATCH, so the graph executes it directly and gets the typed
-    ToolResponse back for memory updates and tracing.
+"""Single source of truth for the agent's tools: each function is exposed both as a
+LangChain StructuredTool (the schema the model sees) and via DISPATCH (direct
+execution by the graph), so the two never drift.
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
 from langchain_core.tools import StructuredTool
@@ -28,6 +26,7 @@ _FUNCTIONS: list[Callable] = [
     catalog_tools.search_products,
     catalog_tools.get_product_details,
     catalog_tools.compare_products,
+    order_tools.create_order,
     order_tools.get_order_status,
     order_tools.get_estimated_delivery,
     order_tools.update_delivery_address,
@@ -66,4 +65,5 @@ def execute(name: str, args: dict) -> ToolResponse:
     try:
         return func(**_coerce_args(args))
     except Exception as exc:  # tools must fail gracefully, never crash the agent
+        logging.getLogger(__name__).exception("Error ejecutando la herramienta %s", name)
         return ToolResponse.fail(f"Error ejecutando {name}: {exc}")

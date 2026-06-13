@@ -1,8 +1,5 @@
-"""Per-turn decision trace.
-
-Every turn produces one structured record of what the agent decided and did. It
-powers the UI trace panel and the grounding assertion in the eval harness, and
-is the evidence that the agent reasons traceably rather than by magic.
+"""Per-turn decision trace: what the agent decided and did. Powers the UI trace
+panel and the grounding assertion in the eval harness.
 """
 from __future__ import annotations
 

@@ -12,19 +12,22 @@ import uuid
 
 from app.agent.service import chat
 from app.data.seed import seed
-from evals.grounding import check_grounding
+from evals.grounding import check_grounding, _tool_evidence
 from evals.judge import judge_violation
 from evals.scenarios import SCENARIOS, Scenario
 
 
 def _run_scenario(s: Scenario) -> list[str]:
     """Execute a scenario, return a list of failure messages (empty == pass)."""
+    # Reseed before EACH scenario so rows created by an earlier one don't leak in.
+    seed()
     session = f"eval-{uuid.uuid4().hex[:8]}"
     failures: list[str] = []
     tools_seen: set[str] = set()
     tools_succeeded: set[str] = set()
     escalated = False
     last_response = ""
+    prior_evidence = ""  # tool evidence accumulated across earlier turns (session-wide)
 
     for turn in s.turns:
         result = chat(session, turn)
@@ -33,9 +36,10 @@ def _run_scenario(s: Scenario) -> list[str]:
         escalated = escalated or result.trace.requires_human
         last_response = result.response
         if s.check_grounding and result.trace.used_tools:
-            grounded, violations = check_grounding(result.trace)
+            grounded, violations = check_grounding(result.trace, prior_evidence)
             if not grounded:
                 failures.extend(violations)
+        prior_evidence += " " + _tool_evidence(result.trace)
 
     missing = s.expect_tools - tools_seen
     if missing:
@@ -74,7 +78,7 @@ def _run_scenario(s: Scenario) -> list[str]:
 
 
 def main() -> int:
-    seed()  # reproducible starting state
+    seed()  # baseline; _run_scenario reseeds before each scenario for isolation
     print("=" * 70)
     print("EVAL SUITE — Retail AI Agent")
     print("=" * 70)

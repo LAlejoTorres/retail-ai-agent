@@ -33,9 +33,17 @@ def _tool_evidence(trace: TurnTrace) -> str:
     ).lower()
 
 
-def check_grounding(trace: TurnTrace) -> tuple[bool, list[str]]:
-    """Return (grounded, violations)."""
-    evidence = _tool_evidence(trace)
+def check_grounding(
+    trace: TurnTrace, prior_evidence: str = ""
+) -> tuple[bool, list[str]]:
+    """Return (grounded, violations).
+
+    `prior_evidence` carries tool inputs/outputs from EARLIER turns of the same
+    session, so a reference the agent legitimately created before (e.g. an ESC/TKT
+    id) and repeats now is not flagged as invented. A truly hallucinated id still
+    appears in no turn's evidence and fails.
+    """
+    evidence = _tool_evidence(trace) + " " + prior_evidence
     evidence_digits = _digits(evidence)
     response = trace.final_response
     violations: list[str] = []

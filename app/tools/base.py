@@ -1,8 +1,4 @@
-"""Shared tool-response contract.
-
-Every tool returns the same envelope so the agent loop, the trace, and the tests
-can handle results uniformly and errors never become free-form text.
-"""
+"""Shared tool-response envelope so every tool returns the same shape."""
 from __future__ import annotations
 
 from typing import Any

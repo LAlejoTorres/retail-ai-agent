@@ -1,16 +1,28 @@
 """Catalog tools: search (deterministic recommender), details, comparison."""
 from __future__ import annotations
 
+import re
+
 from app.domain.recommender import get_product, recommend
 from app.tools.base import ToolResponse
 
 
 def _parse_budget(value: int | str | None) -> int | None:
-    """Tolerate budgets some models emit as strings ('5000000', '5 millones')."""
+    """Tolerate budgets some models emit as strings, applying word multipliers so
+    '5 millones' -> 5_000_000 and '500 mil' -> 500_000 (a naive digit grab would
+    read those as 5 and 500). Plain numerics ('5000000', '1.500.000') pass through."""
     if value is None or isinstance(value, int):
         return value
-    digits = "".join(ch for ch in str(value) if ch.isdigit())
-    return int(digits) if digits else None
+    text = str(value).lower()
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if not digits:
+        return None
+    amount = int(digits)
+    if "mill" in text:
+        amount *= 1_000_000
+    elif re.search(r"\bmil\b", text):
+        amount *= 1_000
+    return amount
 
 
 def search_products(

@@ -18,7 +18,7 @@ _JUDGE_SYSTEM = (
 
 def judge_violation(question: str, user_msg: str, agent_msg: str) -> bool:
     """Return True if the judge answers 'SI' (a violation occurred)."""
-    model = get_chat_model()
+    model = get_chat_model(temperature=0)  # deterministic verdicts
     prompt = (
         f"{question}\n\n"
         f"Mensaje del cliente:\n{user_msg}\n\n"

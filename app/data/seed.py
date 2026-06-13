@@ -1,13 +1,7 @@
-"""Idempotently (re)create and seed the SQLite store.
+"""(Re)create and seed the SQLite store (idempotent). Run: python -m app.data.seed.
 
-Run:  python -m app.data.seed
-
-Seed data is intentionally shaped so each required scenario has both a clean
-"happy path" and an edge case:
-  - Sales: laptops that fit / exceed a 5M COP graphic-design budget.
-  - Orders: an in-transit order (Ana) and a delivered one (Carlos).
-  - Warranty: an ACTIVE warranty (Ana's TV -> ticket + escalation) and an
-    EXPIRED one (Carlos's laptop -> graceful rejection).
+Data is shaped to give each scenario a happy path and an edge case, e.g. Ana's TV
+has an ACTIVE warranty (ticket + escalation), Carlos's laptop an EXPIRED one.
 """
 from __future__ import annotations
 

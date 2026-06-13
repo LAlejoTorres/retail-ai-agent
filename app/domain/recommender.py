@@ -1,11 +1,6 @@
-"""Deterministic catalog filtering + ranking.
-
-The LLM never picks products from raw data (it could hallucinate SKUs or specs).
-Instead it passes structured criteria here; this module returns real, in-budget,
-ranked candidates and the LLM only *justifies* the selection in natural language.
-
-Scoring is intentionally simple and explainable: a use-case profile rewards the
-specs that matter for that use case, with a stock and budget-fit nudge.
+"""Deterministic catalog filtering + ranking. The LLM passes structured criteria
+and only justifies the result; it never picks products from raw data (which could
+hallucinate SKUs/specs). Scoring: a use-case profile + a stock and budget nudge.
 """
 from __future__ import annotations
 
@@ -17,8 +12,6 @@ from pydantic import BaseModel
 
 from app.config import get_settings
 
-# Specs that matter per use case -> how we score a product for it.
-# Each profile maps a label to a scoring function over the product's specs dict.
 _GRAPHIC_GPU_KEYWORDS = ("rtx", "radeon", "apple m")
 
 # Map the many ways users/models name a category to our canonical catalog value.

@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.agent.memory import get_store
-from app.agent.service import chat
+from app.agent.service import chat, reset_session
 from app.api.schemas import (
     ChatRequest,
     ChatResponse,
@@ -29,8 +29,8 @@ def get_session(session_id: str) -> SessionResponse:
 
 
 @router.post("/reset-session", response_model=SimpleResponse)
-def reset_session(session_id: str) -> SimpleResponse:
-    get_store().reset(session_id)
+def post_reset_session(session_id: str) -> SimpleResponse:
+    reset_session(session_id)
     return SimpleResponse(status="reset")
 
 

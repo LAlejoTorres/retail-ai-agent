@@ -1,11 +1,6 @@
-"""RAG over unstructured policy documents (warranty, shipping, returns, FAQ).
-
-This is the *correct* place for retrieval: free-text policy knowledge the agent
-must ground its answers in. The structured catalog is deliberately NOT here — it
-is filtered deterministically in domain/recommender.py.
-
-Indexing is idempotent: documents are chunked by markdown section, embedded with
-a local Ollama model, and stored in a persistent Chroma collection.
+"""RAG over policy docs (warranty, shipping, returns, FAQ): chunk by markdown
+section, embed with local Ollama, store in a persistent Chroma collection.
+The structured catalog is filtered deterministically in domain/recommender.py.
 """
 from __future__ import annotations
 

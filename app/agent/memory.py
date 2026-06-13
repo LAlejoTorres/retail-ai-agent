@@ -1,13 +1,7 @@
-"""Session memory: structured "working memory" the agent carries across turns.
-
-Two layers, kept separate on purpose:
-  - Conversation history (the message list) is owned by the LangGraph state.
-  - `SessionMemory` below is the *structured* slot memory the business cares
-    about (customer, budget, products consulted, last order, preferences). It is
-    what we render in the UI side-panel to prove the agent retains context.
-
-The store is hidden behind `MemoryStore` so the in-memory implementation used in
-the demo can be swapped for Redis/SQLite later without touching callers.
+"""Structured slot memory the agent carries across turns (customer, budget,
+products, last order, preferences). Conversation history lives in LangGraph state;
+this is what the UI side-panel renders. Hidden behind `MemoryStore` so the
+in-memory demo impl can be swapped for Redis/SQLite without touching callers.
 """
 from __future__ import annotations
 

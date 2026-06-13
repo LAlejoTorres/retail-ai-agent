@@ -1,8 +1,5 @@
-"""Centralized, typed configuration loaded from environment / .env.
-
-Everything that varies between environments (model, provider endpoint, storage
-paths) lives here so the rest of the codebase never reads os.environ directly.
-Swapping LLM provider = changing LLM_BASE_URL / LLM_API_KEY / LLM_MODEL only.
+"""Typed configuration from environment / .env. The only place that reads it, so
+swapping LLM provider means changing LLM_BASE_URL / LLM_API_KEY / LLM_MODEL only.
 """
 from __future__ import annotations
 
@@ -25,9 +22,10 @@ class Settings(BaseSettings):
     llm_api_key: str = "ollama"
     llm_model: str = "qwen3:14b"
     llm_disable_thinking: bool = True
-    llm_temperature: float = 0.3
-    llm_max_tokens: int = 500          # cap reply length for latency
+    llm_temperature: float = 0.2
+    llm_max_tokens: int = 1024         # room for reasoning + a full reply (see .env)
     llm_keep_alive: str = "30m"        # keep model resident on Ollama (avoid reloads)
+    llm_timeout: float = 300.0         # tolerate a slow first/cold turn on CPU spill
 
     # Embeddings (local Ollama)
     embed_model: str = "nomic-embed-text"
@@ -37,8 +35,8 @@ class Settings(BaseSettings):
     sqlite_path: Path = Field(default=PROJECT_ROOT / "app" / "data" / "retail.db")
     chroma_path: Path = Field(default=PROJECT_ROOT / "app" / "data" / "chroma")
 
-    # App
-    api_host: str = "0.0.0.0"
+    # App (loopback por defecto: no exponer el demo a la red local)
+    api_host: str = "127.0.0.1"
     api_port: int = 8000
     log_level: str = "INFO"
 
