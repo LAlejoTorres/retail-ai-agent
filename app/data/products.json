@@ -1,0 +1,141 @@
+[
+  {
+    "product_id": "laptop_001",
+    "nombre": "ASUS Vivobook Pro 15 OLED",
+    "categoria": "laptop",
+    "precio_cop": 4899000,
+    "marca": "ASUS",
+    "specs": {
+      "procesador": "AMD Ryzen 7 7735HS",
+      "ram_gb": 16,
+      "almacenamiento": "512GB SSD NVMe",
+      "gpu": "NVIDIA RTX 3050 6GB",
+      "pantalla": "15.6\" OLED 2.8K 100% DCI-P3"
+    },
+    "use_cases": ["diseño gráfico", "edición de video", "gaming"],
+    "stock": 7
+  },
+  {
+    "product_id": "laptop_002",
+    "nombre": "Acer Aspire 7 Creator",
+    "categoria": "laptop",
+    "precio_cop": 4299000,
+    "marca": "Acer",
+    "specs": {
+      "procesador": "Intel Core i5-13420H",
+      "ram_gb": 16,
+      "almacenamiento": "512GB SSD NVMe",
+      "gpu": "NVIDIA RTX 2050 4GB",
+      "pantalla": "15.6\" IPS FHD 100% sRGB"
+    },
+    "use_cases": ["diseño gráfico", "ofimática", "gaming ligero"],
+    "stock": 4
+  },
+  {
+    "product_id": "laptop_003",
+    "nombre": "Lenovo IdeaPad Gaming 3",
+    "categoria": "laptop",
+    "precio_cop": 3999000,
+    "marca": "Lenovo",
+    "specs": {
+      "procesador": "AMD Ryzen 5 6600H",
+      "ram_gb": 16,
+      "almacenamiento": "512GB SSD NVMe",
+      "gpu": "NVIDIA RTX 2050 4GB",
+      "pantalla": "15.6\" IPS FHD 120Hz"
+    },
+    "use_cases": ["gaming ligero", "diseño gráfico", "estudio"],
+    "stock": 9
+  },
+  {
+    "product_id": "laptop_004",
+    "nombre": "HP Pavilion 14",
+    "categoria": "laptop",
+    "precio_cop": 2899000,
+    "marca": "HP",
+    "specs": {
+      "procesador": "Intel Core i5-1335U",
+      "ram_gb": 8,
+      "almacenamiento": "256GB SSD NVMe",
+      "gpu": "Intel Iris Xe (integrada)",
+      "pantalla": "14\" IPS FHD"
+    },
+    "use_cases": ["ofimática", "estudio", "navegación"],
+    "stock": 12
+  },
+  {
+    "product_id": "laptop_005",
+    "nombre": "Apple MacBook Air M2",
+    "categoria": "laptop",
+    "precio_cop": 5899000,
+    "marca": "Apple",
+    "specs": {
+      "procesador": "Apple M2 8-core",
+      "ram_gb": 8,
+      "almacenamiento": "256GB SSD",
+      "gpu": "Apple M2 8-core GPU (integrada)",
+      "pantalla": "13.6\" Liquid Retina"
+    },
+    "use_cases": ["diseño gráfico", "edición de video", "ofimática"],
+    "stock": 3
+  },
+  {
+    "product_id": "tv_001",
+    "nombre": "Samsung Crystal UHD 55\" CU8000",
+    "categoria": "televisor",
+    "precio_cop": 2499000,
+    "marca": "Samsung",
+    "specs": {
+      "tamano": "55 pulgadas",
+      "resolucion": "4K UHD",
+      "panel": "LED",
+      "smart": "Tizen OS"
+    },
+    "use_cases": ["sala", "streaming"],
+    "stock": 6
+  },
+  {
+    "product_id": "tv_002",
+    "nombre": "LG OLED evo C3 48\"",
+    "categoria": "televisor",
+    "precio_cop": 4299000,
+    "marca": "LG",
+    "specs": {
+      "tamano": "48 pulgadas",
+      "resolucion": "4K UHD",
+      "panel": "OLED evo",
+      "smart": "webOS 23"
+    },
+    "use_cases": ["gaming", "cine en casa"],
+    "stock": 2
+  },
+  {
+    "product_id": "phone_001",
+    "nombre": "Samsung Galaxy A55 5G",
+    "categoria": "celular",
+    "precio_cop": 1699000,
+    "marca": "Samsung",
+    "specs": {
+      "ram_gb": 8,
+      "almacenamiento": "256GB",
+      "pantalla": "6.6\" Super AMOLED 120Hz",
+      "camara": "50MP OIS"
+    },
+    "use_cases": ["fotografía", "uso diario"],
+    "stock": 15
+  },
+  {
+    "product_id": "acc_001",
+    "nombre": "Mouse Logitech MX Master 3S",
+    "categoria": "accesorio",
+    "precio_cop": 389000,
+    "marca": "Logitech",
+    "specs": {
+      "tipo": "mouse inalámbrico",
+      "dpi": "8000",
+      "conectividad": "Bluetooth / USB-C"
+    },
+    "use_cases": ["diseño gráfico", "productividad"],
+    "stock": 20
+  }
+]

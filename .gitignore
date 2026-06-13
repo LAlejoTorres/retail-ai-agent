@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# uv / packaging
+uv.lock
+.python-version
+
+# Env / secrets
+.env
+
+# Generated data stores
+app/data/retail.db
+app/data/chroma/
+
+# IDE / OS
+.idea/
+.DS_Store
